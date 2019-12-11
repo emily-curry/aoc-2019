@@ -16,12 +16,12 @@ fn main() {
 fn compute_fuel(mass: f64) -> f64 {
     let fuel = fuel_for_mass(mass);
     if INCLUDE_FUEL_MASS && fuel_for_mass(fuel) > 0.0 {
-        return fuel + compute_fuel(fuel);
+        fuel + compute_fuel(fuel)
     } else {
-        return fuel;
+        fuel
     }
 }
 
 fn fuel_for_mass(mass: f64) -> f64 {
-    return (mass / 3.0).floor() - 2.0;
+    (mass / 3.0).floor() - 2.0
 }
