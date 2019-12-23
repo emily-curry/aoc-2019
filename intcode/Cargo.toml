@@ -1,5 +1,5 @@
 [package]
-name = "aoc-02"
+name = "intcode"
 version = "0.1.0"
 authors = ["Emily Curry <emily@curry.sh>"]
 edition = "2018"
