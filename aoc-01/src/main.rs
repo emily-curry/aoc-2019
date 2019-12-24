@@ -3,7 +3,7 @@ use std::fs;
 const INCLUDE_FUEL_MASS: bool = true;
 
 fn main() {
-    let input = fs::read_to_string("input.txt").unwrap();
+    let input = fs::read_to_string("aoc-01/input.txt").unwrap();
     let lines = input.split("\n");
     let mut total_fuel = 0.0;
     for line in lines {
