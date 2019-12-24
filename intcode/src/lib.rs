@@ -19,22 +19,20 @@ impl IntCode {
         IntCode { data, index: 0 }
     }
 
-    pub fn execute(&mut self) -> usize {
+    pub fn execute(&mut self) -> Result<usize, ()> {
         loop {
-            match self.operation() {
+            let result = match self.operation() {
                 Operation::Add => self.exec_add(),
                 Operation::Multiply => self.exec_multiply(),
                 Operation::Halt => break,
-            }
+            };
+            if let Err(e) = result {
+                return Err(e);
+            };
             self.advance();
         }
 
-        self.data[0]
-    }
-
-    pub fn setup_1202(&mut self) {
-        self.data[1] = 12;
-        self.data[2] = 2;
+        Ok(self.data[0])
     }
 
     fn operation(&self) -> Operation {
@@ -46,25 +44,51 @@ impl IntCode {
         }
     }
 
-    fn advance(&mut self) {
+    fn operation_length(&self) -> usize {
         match self.operation() {
-            Operation::Add | Operation::Multiply => self.index += 4,
-            Operation::Halt => self.index += 1,
+            Operation::Add | Operation::Multiply => 4,
+            Operation::Halt => 1,
         }
     }
 
-    fn exec_add(&mut self) {
-        let val = self.data[self.data[self.index + 1]] + self.data[self.data[self.index + 2]];
-        let out = self.data[self.index + 3];
-        println!("Operation::Add: Storing {} in index {}", val, out);
-        self.data[out] = val;
+    fn advance(&mut self) {
+        self.index += self.operation_length();
     }
 
-    fn exec_multiply(&mut self) {
+    fn is_safe(&self, index: usize) -> bool {
+        index <= self.data.len() - 1
+    }
+
+    fn exec_add(&mut self) -> Result<(), ()> {
+        if !self.is_safe(self.index + self.operation_length())
+            || !self.is_safe(self.data[self.index + 1])
+            || !self.is_safe(self.data[self.index + 2])
+            || !self.is_safe(self.data[self.index + 3])
+        {
+            return Err(());
+        }
+
+        let val = self.data[self.data[self.index + 1]] + self.data[self.data[self.index + 2]];
+        let out = self.data[self.index + 3];
+        // println!("Operation::Add: Storing {} in index {}", val, out);
+        self.data[out] = val;
+        Ok(())
+    }
+
+    fn exec_multiply(&mut self) -> Result<(), ()> {
+        if !self.is_safe(self.index + self.operation_length())
+            || !self.is_safe(self.data[self.index + 1])
+            || !self.is_safe(self.data[self.index + 2])
+            || !self.is_safe(self.data[self.index + 3])
+        {
+            return Err(());
+        }
+
         let val = self.data[self.data[self.index + 1]] * self.data[self.data[self.index + 2]];
         let out = self.data[self.index + 3];
-        println!("Operation::Multiply: Storing {} in index {}", val, out);
+        // println!("Operation::Multiply: Storing {} in index {}", val, out);
         self.data[out] = val;
+        Ok(())
     }
 }
 
