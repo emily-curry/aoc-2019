@@ -8,6 +8,14 @@ edition = "2018"
 
 [workspace]
 
-members = ["aoc-01", "aoc-02", "aoc-03",  "aoc-04", "intcode"]
+members = [
+  "aoc-01", 
+  "aoc-02", 
+  "aoc-03",  
+  "aoc-04", 
+  "aoc-05", 
+  "intcode", 
+  "aoc-util",
+]
 
 [dependencies]

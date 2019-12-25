@@ -20,10 +20,43 @@ name = "aoc-04"
 version = "0.1.0"
 
 [[package]]
+name = "aoc-05"
+version = "0.1.0"
+dependencies = [
+ "intcode 0.1.0",
+]
+
+[[package]]
 name = "aoc-2019"
 version = "0.1.0"
 
 [[package]]
+name = "aoc-util"
+version = "0.1.0"
+dependencies = [
+ "num-traits 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "autocfg"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "intcode"
 version = "0.1.0"
+dependencies = [
+ "aoc-util 0.1.0",
+]
 
+[[package]]
+name = "num-traits"
+version = "0.2.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "autocfg 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[metadata]
+"checksum autocfg 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)" = "1d49d90015b3c36167a20fe2810c5cd875ad504b39cff3d4eae7977e6b7c1cb2"
+"checksum num-traits 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)" = "d4c81ffc11c212fa327657cb19dd85eb7419e163b5b076bede2bdb5c974c07e4"

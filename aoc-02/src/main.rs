@@ -1,7 +1,7 @@
 use intcode::IntCode;
 use std::fs;
 
-const TARGET: usize = 19690720;
+const TARGET: isize = 19690720;
 
 fn main() {
     let input = fs::read_to_string("aoc-02/input.txt").unwrap();
@@ -10,31 +10,31 @@ fn main() {
 }
 
 fn part_01(input: &String) {
-    let mut data: Vec<usize> = input
+    let mut data: Vec<isize> = input
         .split(",")
-        .map(|x| x.parse::<usize>().unwrap())
+        .map(|x| x.parse::<isize>().unwrap())
         .collect();
     data[1] = 12;
     data[2] = 2;
     let mut processor = IntCode::from_vec(data);
-    println!("Part 1 answer: {}", processor.execute().unwrap());
+    println!("Part 1 answer: {:?}", processor.execute(vec![]).unwrap());
 }
 
 fn part_02(input: &String) {
-    let raw: Vec<usize> = input
+    let raw: Vec<isize> = input
         .split(",")
-        .map(|x| x.parse::<usize>().unwrap())
+        .map(|x| x.parse::<isize>().unwrap())
         .collect();
-    let mut input1: usize = 0;
-    let mut input2: usize = 0;
+    let mut input1: isize = 0;
+    let mut input2: isize = 0;
     loop {
         let mut data = raw.clone();
         data[1] = input1;
         data[2] = input2;
         println!("Part 2 trying input: {}, {}", input1, input2);
         let mut processor = IntCode::from_vec(data);
-        let result = processor.execute();
-        if result.is_ok() && result.unwrap() == TARGET {
+        let result = processor.execute(vec![]);
+        if result.is_ok() && result.unwrap().0 == TARGET {
             break;
         }
         if input1 >= 100 {
