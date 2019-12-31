@@ -1,5 +1,7 @@
 extern crate num_traits;
 
+pub mod permutation;
+
 use core::ops::DivAssign;
 use num_traits::{FromPrimitive, PrimInt};
 

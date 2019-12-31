@@ -22,12 +22,13 @@ impl IntCode {
     }
 
     pub fn execute(&mut self, inputs: Vec<isize>) -> Result<(isize, Vec<isize>), ()> {
+        let mut input_iter = inputs.iter();
         let mut outputs = Vec::new();
         loop {
             let result = match self.operation() {
                 Operation::Add(i) => self.exec_add(&i),
                 Operation::Multiply(i) => self.exec_multiply(&i),
-                Operation::Input => self.exec_input(inputs[0]),
+                Operation::Input => self.exec_input(*input_iter.next().unwrap()),
                 Operation::Output(i) => self.exec_output(&i),
                 Operation::JumpIfTrue(i) => self.exec_jump_if_true(&i),
                 Operation::JumpIfFalse(i) => self.exec_jump_if_false(&i),
@@ -187,6 +188,15 @@ impl IntCode {
         };
         self.write(self.index + 3, val)?;
         Ok(Default::default())
+    }
+}
+
+impl Clone for IntCode {
+    fn clone(&self) -> IntCode {
+        IntCode {
+            data: self.data.clone(),
+            index: self.index,
+        }
     }
 }
 
