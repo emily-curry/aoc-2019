@@ -1,9 +1,10 @@
 extern crate num_traits;
 
-pub mod permutation;
+mod permutation;
 
 use core::ops::DivAssign;
 use num_traits::{FromPrimitive, PrimInt};
+pub use permutation::Permutation;
 
 pub fn digits<T>(input: T) -> Vec<T>
 where

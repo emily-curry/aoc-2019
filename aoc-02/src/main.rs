@@ -9,7 +9,7 @@ fn main() {
     part_02(&input);
 }
 
-fn part_01(input: &String) {
+fn part_01(input: &str) {
     let mut data: Vec<isize> = input
         .split(",")
         .map(|x| x.parse::<isize>().unwrap())
@@ -17,10 +17,10 @@ fn part_01(input: &String) {
     data[1] = 12;
     data[2] = 2;
     let mut processor = IntCode::from_vec(data);
-    println!("Part 1 answer: {:?}", processor.execute(vec![]).unwrap());
+    println!("Part 1 answer: {:?}", processor.execute().unwrap());
 }
 
-fn part_02(input: &String) {
+fn part_02(input: &str) {
     let raw: Vec<isize> = input
         .split(",")
         .map(|x| x.parse::<isize>().unwrap())
@@ -33,8 +33,8 @@ fn part_02(input: &String) {
         data[2] = input2;
         println!("Part 2 trying input: {}, {}", input1, input2);
         let mut processor = IntCode::from_vec(data);
-        let result = processor.execute(vec![]);
-        if result.is_ok() && result.unwrap().0 == TARGET {
+        let result = processor.execute();
+        if result.is_ok() && *result.unwrap().first == TARGET {
             break;
         }
         if input1 >= 100 {
