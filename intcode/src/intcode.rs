@@ -1,14 +1,17 @@
+use super::intcode_error::{IntCodeError, IntCodeErrorKind};
 use super::intcode_result::{IntCodeResult, IntCodeResultKind};
 use super::operation::{Operation, OperationMode};
 use super::operation_result::OperationResult;
 use aoc_util::digits;
 
+#[derive(Debug, Clone)]
 pub struct IntCode {
   data: Vec<isize>,
   index: usize,
   input: Vec<isize>,
   input_index: usize,
   output: Vec<isize>,
+  relative_base: isize,
 }
 
 impl IntCode {
@@ -19,6 +22,7 @@ impl IntCode {
       input: Vec::new(),
       input_index: 0,
       output: Vec::new(),
+      relative_base: 0,
     }
   }
 
@@ -33,6 +37,7 @@ impl IntCode {
       input: Vec::new(),
       input_index: 0,
       output: Vec::new(),
+      relative_base: 0,
     }
   }
 
@@ -40,17 +45,18 @@ impl IntCode {
     self.input.extend(inputs.iter());
   }
 
-  pub fn execute(&mut self) -> Result<IntCodeResult, ()> {
+  pub fn execute(&mut self) -> Result<IntCodeResult, IntCodeError> {
     loop {
       let result = match self.operation() {
         Operation::Add(i) => self.exec_add(&i),
         Operation::Multiply(i) => self.exec_multiply(&i),
-        Operation::Input => self.exec_input(),
+        Operation::Input(i) => self.exec_input(&i),
         Operation::Output(i) => self.exec_output(&i),
         Operation::JumpIfTrue(i) => self.exec_jump_if_true(&i),
         Operation::JumpIfFalse(i) => self.exec_jump_if_false(&i),
         Operation::LessThan(i) => self.exec_less_than(&i),
         Operation::Equals(i) => self.exec_equals(&i),
+        Operation::RelBaseOffset(i) => self.exec_rel_base_offset(&i),
         Operation::Halt => self.exec_halt(),
       }?;
       match result {
@@ -60,18 +66,10 @@ impl IntCode {
           }
         }
         OperationResult::Halt => {
-          return Ok(IntCodeResult {
-            kind: IntCodeResultKind::Halt,
-            first: &self.data[0],
-            output: &self.output,
-          })
+          return Ok(self.get_result(IntCodeResultKind::Halt));
         }
         OperationResult::Yield => {
-          return Ok(IntCodeResult {
-            kind: IntCodeResultKind::Yield,
-            first: &self.data[0],
-            output: &self.output,
-          })
+          return Ok(self.get_result(IntCodeResultKind::Yield));
         }
       }
     }
@@ -80,22 +78,24 @@ impl IntCode {
   fn operation(&self) -> Operation {
     let opcode = digits(self.data[self.index]);
     let op = opcode[0] + (opcode.get(1).cloned().unwrap_or(0) * 10);
-    let mut params = [0; 2]; // Increase array len if more params needed
+    let mut params = [0; 3]; // Increase array len if more params needed
     for i in 0..params.len() {
       params[i] = opcode.get(i + 2).cloned().unwrap_or(0);
     }
 
     let el0 = OperationMode::from(params[0]);
     let el1 = OperationMode::from(params[1]);
+    let el2 = OperationMode::from(params[2]);
     match op {
-      1 => Operation::Add([el0, el1]),
-      2 => Operation::Multiply([el0, el1]),
-      3 => Operation::Input,
+      1 => Operation::Add([el0, el1, el2]),
+      2 => Operation::Multiply([el0, el1, el2]),
+      3 => Operation::Input([el0]),
       4 => Operation::Output([el0]),
       5 => Operation::JumpIfTrue([el0, el1]),
       6 => Operation::JumpIfFalse([el0, el1]),
-      7 => Operation::LessThan([el0, el1]),
-      8 => Operation::Equals([el0, el1]),
+      7 => Operation::LessThan([el0, el1, el2]),
+      8 => Operation::Equals([el0, el1, el2]),
+      9 => Operation::RelBaseOffset([el0]),
       99 => Operation::Halt,
       _ => panic!("No operation for code: {}", op),
     }
@@ -108,7 +108,7 @@ impl IntCode {
       | Operation::LessThan(_)
       | Operation::Equals(_) => 4,
       Operation::JumpIfTrue(_) | Operation::JumpIfFalse(_) => 3,
-      Operation::Input | Operation::Output(_) => 2,
+      Operation::Input(_) | Operation::Output(_) | Operation::RelBaseOffset(_) => 2,
       Operation::Halt => 1,
     }
   }
@@ -117,33 +117,69 @@ impl IntCode {
     self.index += self.operation_length();
   }
 
-  fn is_safe(&self, index: isize) -> bool {
-    index >= 0 && index as usize <= self.data.len() - 1
-  }
-
-  fn read(&self, index: usize, mode: &OperationMode) -> Result<isize, ()> {
+  fn read(&self, index: usize, mode: &OperationMode) -> Result<isize, IntCodeError> {
     match mode {
       OperationMode::Position => {
-        if !self.is_safe(index as isize) || !self.is_safe(self.data[index]) {
-          return Err(());
+        let pos = *self.data.get(index).unwrap_or(&0);
+        if pos < 0 {
+          return Err(self.get_error(IntCodeErrorKind::ReadOutOfRange {
+            index: pos,
+            mode: mode.clone(),
+          }));
         }
-        Ok(self.data[self.data[index] as usize])
+        Ok(*self.data.get(pos as usize).unwrap_or(&0))
       }
-      OperationMode::Immediate => {
-        if !self.is_safe(index as isize) {
-          return Err(());
+      OperationMode::Immediate => Ok(*self.data.get(index).unwrap_or(&0)),
+      OperationMode::Relative => {
+        let pos = *self.data.get(index).unwrap_or(&0);
+        let rel = pos + self.relative_base;
+        if rel < 0 {
+          return Err(self.get_error(IntCodeErrorKind::ReadOutOfRange {
+            index: rel,
+            mode: mode.clone(),
+          }));
         }
-        Ok(self.data[index])
+        Ok(*self.data.get(rel as usize).unwrap_or(&0))
       }
     }
   }
 
-  fn write(&mut self, index: usize, value: isize) -> Result<(), ()> {
-    if !self.is_safe(index as isize) || !self.is_safe(self.data[index]) {
-      return Err(());
+  fn write(
+    &mut self,
+    index: usize,
+    mode: &OperationMode,
+    value: isize,
+  ) -> Result<(), IntCodeError> {
+    let out = match mode {
+      OperationMode::Position => {
+        let out = *self.data.get(index).unwrap_or(&0);
+        if out < 0 {
+          return Err(self.get_error(IntCodeErrorKind::WriteOutOfRange {
+            index: out,
+            mode: mode.clone(),
+          }));
+        }
+        Ok(out as usize)
+      }
+      OperationMode::Immediate => {
+        Err(self.get_error(IntCodeErrorKind::WriteInvalidOperationMode { mode: mode.clone() }))
+      }
+      OperationMode::Relative => {
+        let pos = *self.data.get(index).unwrap_or(&0);
+        let out = pos + self.relative_base;
+        if out < 0 {
+          return Err(self.get_error(IntCodeErrorKind::WriteOutOfRange {
+            index: out,
+            mode: mode.clone(),
+          }));
+        }
+        Ok(out as usize)
+      }
+    }?;
+    if out > self.data.len() - 1 {
+      self.data.resize(out as usize + 1, 0);
     }
-    let out = self.data[index] as usize;
-    self.data[out] = value;
+    self.data[out as usize] = value;
     Ok(())
   }
 
@@ -156,36 +192,39 @@ impl IntCode {
     result
   }
 
-  fn exec_add(&mut self, modes: &[OperationMode; 2]) -> Result<OperationResult, ()> {
+  fn exec_add(&mut self, modes: &[OperationMode; 3]) -> Result<OperationResult, IntCodeError> {
     let val = self.read(self.index + 1, &modes[0])? + self.read(self.index + 2, &modes[1])?;
-    self.write(self.index + 3, val)?;
+    self.write(self.index + 3, &modes[2], val)?;
     Ok(Default::default())
   }
 
-  fn exec_multiply(&mut self, modes: &[OperationMode; 2]) -> Result<OperationResult, ()> {
+  fn exec_multiply(&mut self, modes: &[OperationMode; 3]) -> Result<OperationResult, IntCodeError> {
     let val = self.read(self.index + 1, &modes[0])? * self.read(self.index + 2, &modes[1])?;
-    self.write(self.index + 3, val)?;
+    self.write(self.index + 3, &modes[2], val)?;
     Ok(Default::default())
   }
 
-  fn exec_input(&mut self) -> Result<OperationResult, ()> {
+  fn exec_input(&mut self, modes: &[OperationMode; 1]) -> Result<OperationResult, IntCodeError> {
     let input = self.read_input();
     match input {
       Ok(i) => {
-        self.write(self.index + 1, i)?;
+        self.write(self.index + 1, &modes[0], i)?;
         Ok(Default::default())
       }
       Err(_) => Ok(OperationResult::Yield),
     }
   }
 
-  fn exec_output(&mut self, modes: &[OperationMode; 1]) -> Result<OperationResult, ()> {
+  fn exec_output(&mut self, modes: &[OperationMode; 1]) -> Result<OperationResult, IntCodeError> {
     let result = self.read(self.index + 1, &modes[0])?;
     self.output.push(result);
     Ok(Default::default())
   }
 
-  fn exec_jump_if_true(&mut self, modes: &[OperationMode; 2]) -> Result<OperationResult, ()> {
+  fn exec_jump_if_true(
+    &mut self,
+    modes: &[OperationMode; 2],
+  ) -> Result<OperationResult, IntCodeError> {
     let val = self.read(self.index + 1, &modes[0])?;
     if val != 0 {
       let next_index = self.read(self.index + 2, &modes[1])?;
@@ -195,7 +234,10 @@ impl IntCode {
     Ok(Default::default())
   }
 
-  fn exec_jump_if_false(&mut self, modes: &[OperationMode; 2]) -> Result<OperationResult, ()> {
+  fn exec_jump_if_false(
+    &mut self,
+    modes: &[OperationMode; 2],
+  ) -> Result<OperationResult, IntCodeError> {
     let val = self.read(self.index + 1, &modes[0])?;
     if val == 0 {
       let next_index = self.read(self.index + 2, &modes[1])?;
@@ -205,41 +247,57 @@ impl IntCode {
     Ok(Default::default())
   }
 
-  fn exec_less_than(&mut self, modes: &[OperationMode; 2]) -> Result<OperationResult, ()> {
+  fn exec_less_than(
+    &mut self,
+    modes: &[OperationMode; 3],
+  ) -> Result<OperationResult, IntCodeError> {
     let left = self.read(self.index + 1, &modes[0])?;
     let right = self.read(self.index + 2, &modes[1])?;
     let val = match left < right {
       true => 1,
       false => 0,
     };
-    self.write(self.index + 3, val)?;
+    self.write(self.index + 3, &modes[2], val)?;
     Ok(Default::default())
   }
 
-  fn exec_equals(&mut self, modes: &[OperationMode; 2]) -> Result<OperationResult, ()> {
+  fn exec_equals(&mut self, modes: &[OperationMode; 3]) -> Result<OperationResult, IntCodeError> {
     let left = self.read(self.index + 1, &modes[0])?;
     let right = self.read(self.index + 2, &modes[1])?;
     let val = match left == right {
       true => 1,
       false => 0,
     };
-    self.write(self.index + 3, val)?;
+    self.write(self.index + 3, &modes[2], val)?;
     Ok(Default::default())
   }
 
-  fn exec_halt(&self) -> Result<OperationResult, ()> {
+  fn exec_rel_base_offset(
+    &mut self,
+    modes: &[OperationMode; 1],
+  ) -> Result<OperationResult, IntCodeError> {
+    let offset = self.read(self.index + 1, &modes[0])?;
+    self.relative_base += offset;
+    Ok(Default::default())
+  }
+
+  fn exec_halt(&self) -> Result<OperationResult, IntCodeError> {
     Ok(OperationResult::Halt)
   }
-}
 
-impl Clone for IntCode {
-  fn clone(&self) -> IntCode {
-    IntCode {
-      data: self.data.clone(),
+  fn get_result(&self, kind: IntCodeResultKind) -> IntCodeResult {
+    IntCodeResult {
+      kind,
+      first: &self.data[0],
+      output: &self.output,
+    }
+  }
+
+  fn get_error(&self, kind: IntCodeErrorKind) -> IntCodeError {
+    IntCodeError {
+      kind,
       index: self.index,
-      input: self.input.clone(),
-      input_index: self.input_index,
-      output: self.output.clone(),
+      opcode: self.data[self.index],
     }
   }
 }
