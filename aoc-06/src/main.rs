@@ -39,9 +39,9 @@ impl<'a> OrbitMap<'a> {
     }
 
     pub fn insert(&mut self, parent: &'a str, child: &'a str) {
-        let parent_orbiter = self.get_object(parent);
+        let parent_orbiter = self.objects.entry(parent).or_default();
         parent_orbiter.children.push(child);
-        let mut child_orbiter = self.get_object(child);
+        let mut child_orbiter = self.objects.entry(child).or_default();
         child_orbiter.parent = Some(parent);
     }
 
@@ -77,13 +77,6 @@ impl<'a> OrbitMap<'a> {
         panic!("No common objects");
     }
 
-    fn get_object(&mut self, key: &'a str) -> &mut Orbiter<'a> {
-        if !self.objects.contains_key(key) {
-            self.objects.insert(key, Orbiter::new());
-        }
-        self.objects.get_mut(key).unwrap()
-    }
-
     fn get_chain(&self, key: &'a str) -> Vec<&'a str> {
         match self.objects.get(key).unwrap().parent {
             None => vec![key],
@@ -101,8 +94,8 @@ struct Orbiter<'a> {
     children: Vec<&'a str>,
 }
 
-impl<'a> Orbiter<'a> {
-    fn new() -> Orbiter<'a> {
+impl<'a> Default for Orbiter<'a> {
+    fn default() -> Self {
         Orbiter {
             parent: None,
             children: Vec::new(),
