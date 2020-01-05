@@ -2,7 +2,7 @@ use super::intcode_error::{IntCodeError, IntCodeErrorKind};
 use super::intcode_result::{IntCodeResult, IntCodeResultKind};
 use super::operation::{Operation, OperationMode};
 use super::operation_result::OperationResult;
-use aoc_util::digits;
+use aoc_util::ToDigits;
 
 #[derive(Debug, Clone)]
 pub struct IntCode {
@@ -76,7 +76,7 @@ impl IntCode {
   }
 
   fn operation(&self) -> Operation {
-    let opcode = digits(self.data[self.index]);
+    let opcode = self.data[self.index].digits();
     let op = opcode[0] + (opcode.get(1).cloned().unwrap_or(0) * 10);
     let mut params = [0; 3]; // Increase array len if more params needed
     for i in 0..params.len() {
