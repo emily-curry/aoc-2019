@@ -8,6 +8,11 @@ fn main() {
     let mut robot = HullPaintRobot::new(&input);
     let paint = robot.execute();
     println!("Tiles painted: {}", paint.len());
+
+    let mut robot2 = HullPaintRobot::new(&input);
+    robot2.paint(HullPaintColor::White);
+    robot2.execute();
+    robot2.print();
 }
 
 pub enum HullPaintColor {
@@ -30,6 +35,15 @@ impl From<&HullPaintColor> for isize {
         match c {
             HullPaintColor::Black => 0,
             HullPaintColor::White => 1,
+        }
+    }
+}
+
+impl From<&HullPaintColor> for char {
+    fn from(c: &HullPaintColor) -> Self {
+        match c {
+            HullPaintColor::Black => ' ',
+            HullPaintColor::White => '█',
         }
     }
 }
@@ -60,7 +74,7 @@ impl HullPaintRobot {
             let o1 = result.output[out_idx];
             let o2 = result.output[out_idx + 1];
             let k = result.kind;
-            self.paint(o1);
+            self.paint(o1.into());
             self.rotate(o2);
             self.advance();
             out_idx = out_idx + 2;
@@ -71,15 +85,33 @@ impl HullPaintRobot {
         &self.painted
     }
 
+    pub fn print(&self) {
+        let (x1, x2, y1, y2) = self.bounds();
+        let s = (*y1..*y2 + 1).fold(String::from("\n"), |mut yacc, y| {
+            let row = (*x1..*x2 + 1).fold(String::from(" "), |mut xacc, x| {
+                xacc.push(
+                    self.painted
+                        .get(&(x, y))
+                        .unwrap_or(&HullPaintColor::Black)
+                        .into(),
+                );
+                xacc
+            });
+            yacc.push_str(&row);
+            yacc.push('\n');
+            yacc
+        });
+        println!("{}", s);
+    }
+
     fn color_at_location(&self) -> &HullPaintColor {
         self.painted
             .get(&self.location)
             .unwrap_or(&HullPaintColor::Black)
     }
 
-    fn paint(&mut self, input: isize) {
-        self.painted
-            .insert(self.location, HullPaintColor::from(input));
+    pub fn paint(&mut self, input: HullPaintColor) {
+        self.painted.insert(self.location, input);
     }
 
     fn rotate(&mut self, input: isize) {
@@ -97,5 +129,15 @@ impl HullPaintRobot {
             Direction::Left => (self.location.0 - 1, self.location.1),
             Direction::Right => (self.location.0 + 1, self.location.1),
         }
+    }
+
+    fn bounds(&self) -> (&i8, &i8, &i8, &i8) {
+        let x_range = self.painted.keys().map(|(x, _y)| x);
+        let y_range = self.painted.keys().map(|(_x, y)| y);
+        let x1 = x_range.clone().min().unwrap();
+        let x2 = x_range.max().unwrap();
+        let y1 = y_range.clone().min().unwrap();
+        let y2 = y_range.max().unwrap();
+        (x1, x2, y1, y2)
     }
 }
