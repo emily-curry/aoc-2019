@@ -14,6 +14,9 @@ dependencies = [
 [[package]]
 name = "aoc-03"
 version = "0.1.0"
+dependencies = [
+ "aoc-util 0.1.0",
+]
 
 [[package]]
 name = "aoc-04"
@@ -54,6 +57,14 @@ name = "aoc-10"
 version = "0.1.0"
 dependencies = [
  "aoc-util 0.1.0",
+]
+
+[[package]]
+name = "aoc-11"
+version = "0.1.0"
+dependencies = [
+ "aoc-util 0.1.0",
+ "intcode 0.1.0",
 ]
 
 [[package]]

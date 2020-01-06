@@ -1,3 +1,4 @@
+use aoc_util::Direction;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
@@ -86,8 +87,7 @@ struct Wire {
 
 impl Wire {
     pub fn from(input: &str) -> Wire {
-        let steps: Vec<(WireDirection, i32)> =
-            input.split(",").map(|x| Wire::parse_step(x)).collect();
+        let steps: Vec<(Direction, i32)> = input.split(",").map(|x| Wire::parse_step(x)).collect();
         let mut locs = HashSet::new();
         let mut loc_step = HashMap::new();
         let mut x = 0;
@@ -97,10 +97,10 @@ impl Wire {
             let mut i = step.1;
             while i > 0 {
                 match step.0 {
-                    WireDirection::Right => x += 1,
-                    WireDirection::Left => x -= 1,
-                    WireDirection::Up => y += 1,
-                    WireDirection::Down => y -= 1,
+                    Direction::Right => x += 1,
+                    Direction::Left => x -= 1,
+                    Direction::Up => y += 1,
+                    Direction::Down => y -= 1,
                 }
                 let loc = (x, y);
                 locs.insert(loc);
@@ -119,23 +119,16 @@ impl Wire {
         }
     }
 
-    fn parse_step(input: &str) -> (WireDirection, i32) {
+    fn parse_step(input: &str) -> (Direction, i32) {
         let dir = match input.chars().next().unwrap() {
-            'R' => WireDirection::Right,
-            'L' => WireDirection::Left,
-            'U' => WireDirection::Up,
-            'D' => WireDirection::Down,
+            'R' => Direction::Right,
+            'L' => Direction::Left,
+            'U' => Direction::Up,
+            'D' => Direction::Down,
             _ => panic!(),
         };
         let len = &input[1..].parse::<i32>().unwrap();
 
         return (dir, *len);
     }
-}
-
-enum WireDirection {
-    Up,
-    Down,
-    Left,
-    Right,
 }

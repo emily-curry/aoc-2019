@@ -1,5 +1,5 @@
 [package]
-name = "aoc-03"
+name = "aoc-11"
 version = "0.1.0"
 authors = ["Emily Curry <emily@curry.sh>"]
 edition = "2018"
@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 
 aoc-util = { path = "../aoc-util" }
+intcode = { path = "../intcode" }
