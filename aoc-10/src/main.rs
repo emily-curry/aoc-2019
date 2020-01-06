@@ -9,7 +9,9 @@ use std::fs;
 
 fn main() {
     let input = fs::read_to_string("aoc-10/input.txt").unwrap();
-    let map = SpaceMap::<AsteroidFieldPoint>::from_string(&input);
+    let mut map = SpaceMap::<AsteroidFieldPoint>::from_string(&input);
     let max = map.max_visible();
-    println!("{:?}", max);
+    println!("Most visible (count, x, y): {:?}", max);
+    let vapor_order = map.vaporize((max.1, max.2));
+    println!("200th vaporized: {:?}", vapor_order[199]);
 }
