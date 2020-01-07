@@ -1,4 +1,5 @@
 use num_traits::{FromPrimitive, PrimInt};
+use std::fmt::Display;
 
 trait Abs<T> {
   fn abs(&self) -> T;
@@ -23,7 +24,7 @@ pub trait GCD<T> {
 
 impl<T> GCD<T> for T
 where
-  T: PrimInt + FromPrimitive + std::fmt::Display,
+  T: PrimInt + FromPrimitive + Display,
 {
   fn gcd(&self, b: T) -> T {
     let a = *self;

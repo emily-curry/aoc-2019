@@ -12,6 +12,7 @@ members = [
   "aoc-09", 
   "aoc-10", 
   "aoc-11", 
+  "aoc-12", 
   "intcode", 
   "aoc-util",
 ]
