@@ -45,6 +45,10 @@ impl IntCode {
     self.input.extend(inputs.iter());
   }
 
+  pub fn get_output(&self) -> &Vec<isize> {
+    &self.output
+  }
+
   pub fn execute(&mut self) -> Result<IntCodeResult, IntCodeError> {
     loop {
       let result = match self.operation() {
