@@ -10,3 +10,4 @@ edition = "2018"
 
 aoc-util = { path = "../aoc-util" }
 intcode = { path = "../intcode" }
+crossterm = "0.17.3"
